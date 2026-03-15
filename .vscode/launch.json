@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Flask (via bash script)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "subProcess": true,
+            "env": {
+                // Environment variables can also be set here, but the script handles them too
+                "FLASK_APP": "app.py",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "run",
+                "--no-debugger", // External debuggers work better without the built-in one
+                "--no-reload" // Also disable the reloader to prevent interference
+            ],
+            // Optional: specify a task to run before debugging starts
+            "preLaunchTask": "url-open"
+        }
+    ]
+}

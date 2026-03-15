@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="dark" data-theme="one-dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Odoo Module Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DEFAULT THEME TOKENS  (overwritten by JS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+:root {
+  --bg:      #282c34; --panel:  #21252b; --sf:    #2c313c; --sf2:   #323842;
+  --b:       #3e4451; --b2:     #545d6b;
+  --tx:      #abb2bf; --tx2:    #636d83; --tx3:   #4b5263;
+  --ac:      #61afef; --ac-lo:  rgba(97,175,239,.14); --ac-bd: rgba(97,175,239,.3);
+  --gn:      #98c379; --rd:     #e06c75; --am:    #e5c07b;
+  --sk:      #c678dd; --ss:     #98c379; --sn:    #d19a66; --sc: #5c6370; --sb: #e5c07b;
+  --r:       5px;
+  --mono:    'IBM Plex Mono', monospace;
+  --sans:    'Outfit', sans-serif;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   RESET
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;-webkit-text-size-adjust:100%}
+body{font-family:var(--sans);font-size:13px;line-height:1.5;background:var(--bg);color:var(--tx);overflow:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+::-webkit-scrollbar-track{background:transparent}
+button{font-family:var(--sans);cursor:pointer;border:none}
+a{color:var(--ac);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.84em}
+input,select,textarea{font-family:var(--sans)}
+kbd{font-family:var(--mono);font-size:.8em;padding:1px 5px;background:var(--sf2);border:1px solid var(--b2);border-radius:3px;color:var(--tx2)}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SHELL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.app{display:flex;flex-direction:column;height:100vh}
+.main{display:flex;flex:1;overflow:hidden}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TITLEBAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.titlebar{
+  display:flex;align-items:center;gap:10px;height:40px;padding:0 14px;
+  flex-shrink:0;background:var(--panel);border-bottom:1px solid var(--b);
+  z-index:60;user-select:none}
+.tb-logo{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tb-mark{
+  width:22px;height:22px;background:var(--ac);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:700;font-size:10px;color:#fff;flex-shrink:0}
+.tb-title{font-size:12.5px;font-weight:600;color:var(--tx);white-space:nowrap}
+.tb-div{width:1px;height:16px;background:var(--b2);flex-shrink:0;margin:0 4px}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* Palette */
+.palette{display:flex;align-items:center;gap:3px}
+.pal-group{display:flex;align-items:center;gap:3px}
+.pal-sep{width:1px;height:14px;background:var(--b2);margin:0 5px}
+.swatch{
+  width:13px;height:13px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:transform .15s,border-color .15s;
+  flex-shrink:0}
+.swatch:hover{transform:scale(1.3)}
+.swatch.active{border-color:var(--tx)}
+.pal-label{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);margin-right:2px}
+
+/* Mode toggle */
+.mode-btn{
+  width:28px;height:28px;border-radius:var(--r);background:transparent;
+  border:1px solid var(--b);color:var(--tx2);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;transition:all .12s;flex-shrink:0}
+.mode-btn:hover{background:var(--sf);color:var(--tx);border-color:var(--b2)}
+.mode-btn svg{pointer-events:none}
+#icon-sun{display:none}
+#icon-moon{display:block}
+[data-mode="light"] #icon-sun{display:block}
+[data-mode="light"] #icon-moon{display:none}
+
+/* Version pill */
+.ver-pill{
+  display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;
+  background:var(--sf);border:1px solid var(--b);border-radius:20px;
+  padding:2px 9px;white-space:nowrap;flex-shrink:0}
+.ver-dot{width:5px;height:5px;border-radius:50%;background:var(--gn);flex-shrink:0}
+.ver-n{color:var(--ac);font-weight:600}
+.ver-py{color:var(--tx2)}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SIDEBAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sidebar{
+  width:305px;flex-shrink:0;display:flex;flex-direction:column;
+  border-right:1px solid var(--b);background:var(--panel);overflow:hidden}
+.ptabs{
+  display:flex;flex-shrink:0;background:var(--panel);
+  border-bottom:1px solid var(--b)}
+.ptab{
+  flex:1;padding:8px 6px;text-align:center;font-size:11px;font-weight:600;
+  color:var(--tx3);cursor:pointer;border-bottom:2px solid transparent;
+  transition:color .15s,border-color .15s;user-select:none;letter-spacing:.2px}
+.ptab:hover{color:var(--tx2)}
+.ptab.on{color:var(--ac);border-bottom-color:var(--ac)}
+.pane{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px}
+.pane.off{display:none}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SECTION HEADERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sec{margin-bottom:14px}
+.sh{
+  font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--tx3);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.sh::before{
+  content:'';display:block;width:2px;height:8px;
+  background:var(--ac);border-radius:1px;flex-shrink:0}
+.sh-r{margin-left:auto;display:flex;align-items:center;gap:4px}
+.micro-btn{
+  padding:1px 7px;font-size:10px;font-weight:500;
+  background:var(--sf);border:1px solid var(--b);color:var(--tx2);
+  border-radius:3px;cursor:pointer;transition:all .12s}
+.micro-btn:hover{border-color:var(--b2);color:var(--tx)}
+.sh-badge{
+  font-size:9px;font-family:var(--mono);color:var(--ac);
+  background:var(--ac-lo);border:1px solid var(--ac-bd);
+  padding:0 5px;border-radius:3px}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   FORM ELEMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.row{margin-bottom:6px}
+.row:last-child{margin-bottom:0}
+.lbl{display:block;font-size:11px;font-weight:500;color:var(--tx2);margin-bottom:3px}
+.req{color:var(--ac)}
+.hint{font-size:10px;color:var(--tx3);margin-top:2px;line-height:1.4}
+input[type=text],input[type=url],input[type=password],input[type=number],textarea,select{
+  display:block;width:100%;background:var(--sf);border:1px solid var(--b);
+  color:var(--tx);border-radius:var(--r);padding:5px 8px;font-size:12px;
+  outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,textarea:focus,select:focus{
+  border-color:var(--ac);box-shadow:0 0 0 2px var(--ac-lo)}
+textarea{resize:vertical;min-height:46px;font-family:var(--mono);font-size:11px}
+select option{background:var(--panel)}
+input[type=password]{font-family:var(--mono)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pair{display:grid;grid-template-columns:1fr 72px;gap:6px}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   VERSION SELECTOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.vmode{display:flex;gap:3px;margin-bottom:7px}
+.vmode-btn{
+  flex:1;padding:4px 0;font-size:10px;font-weight:600;text-align:center;
+  background:var(--sf);border:1px solid var(--b);border-radius:var(--r);
+  cursor:pointer;color:var(--tx3);transition:all .12s;user-select:none}
+.vmode-btn:hover{color:var(--tx2);border-color:var(--b2)}
+.vmode-btn.on{background:var(--ac-lo);border-color:var(--ac-bd);color:var(--ac)}
+.vrange-row{display:none;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:7px}
+.vrange-row.show{display:grid}
+.vgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:6px}
+.vbtn{
+  position:relative;padding:6px 2px 5px;text-align:center;
+  background:var(--sf);border:1px solid var(--b);border-radius:var(--r);
+  cursor:pointer;font-family:var(--mono);font-size:10.5px;font-weight:600;
+  color:var(--tx2);transition:all .12s;user-select:none;overflow:hidden}
+.vbtn:hover{border-color:var(--b2);color:var(--tx)}
+.vbtn.sel{background:var(--ac-lo);border-color:var(--ac-bd);color:var(--ac)}
+.vbtn.primary{
+  background:var(--ac);border-color:var(--ac);color:#fff;
+  box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--ac)}
+.vbtn .vs{
+  font-size:8.5px;display:block;font-family:var(--sans);font-weight:400;
+  margin-top:1px;opacity:.75}
+.vbtn .vck{
+  position:absolute;top:2px;right:2px;width:9px;height:9px;
+  border-radius:2px;border:1.5px solid var(--b2);background:transparent;
+  display:flex;align-items:center;justify-content:center;
+  font-size:6px;line-height:1;color:transparent;transition:all .12s}
+.vbtn.sel .vck{background:var(--ac);border-color:var(--ac);color:#fff}
+.vbtn.primary .vck{background:rgba(255,255,255,.3);border-color:rgba(255,255,255,.5);color:#fff}
+.sel-tags{display:flex;flex-wrap:wrap;gap:3px;min-height:18px;margin-bottom:5px}
+.sv-tag{
+  display:inline-flex;align-items:center;gap:3px;background:var(--ac-lo);
+  border:1px solid var(--ac-bd);color:var(--ac);border-radius:3px;
+  padding:1px 5px;font-size:10px;font-family:var(--mono);cursor:pointer;
+  transition:all .12s;user-select:none}
+.sv-tag:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--rd)}
+.sv-tag.pri{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:600;cursor:default}
+.sv-tag.pri:hover{background:var(--ac);color:#fff;border-color:var(--ac)}
+.vhint{font-size:10px;color:var(--tx3);margin-bottom:5px;line-height:1.4}
+.compat{
+  background:var(--sf);border:1px solid var(--b);border-radius:var(--r);
+  padding:7px 9px;font-size:11px;display:flex;flex-direction:column;gap:3px}
+.cr{display:flex;gap:6px;align-items:baseline}
+.ck2{width:54px;flex-shrink:0;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3)}
+.cv{font-family:var(--mono);color:var(--gn);font-size:11px}
+.cw{color:var(--am);font-size:11px}
+.feats{display:flex;flex-wrap:wrap;gap:3px}
+.feat{
+  font-size:9px;padding:1px 5px;background:rgba(152,195,121,.08);
+  border:1px solid rgba(152,195,121,.2);color:var(--gn);
+  border-radius:8px;font-family:var(--mono)}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CHECKBOXES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.cks{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.cks.c1{grid-template-columns:1fr}
+.ck-item{
+  display:flex;align-items:center;gap:6px;
+  background:var(--sf);border:1px solid var(--b);border-radius:var(--r);
+  padding:6px 8px;cursor:pointer;user-select:none;transition:all .12s}
+.ck-item:hover{border-color:var(--b2)}
+.ck-item.on{background:var(--ac-lo);border-color:var(--ac-bd)}
+.ck-item input{display:none}
+.ck-box{
+  width:14px;height:14px;border-radius:3px;border:1.5px solid var(--b2);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:9px;line-height:1;color:transparent;transition:all .12s}
+.ck-item.on .ck-box{background:var(--ac);border-color:var(--ac);color:#fff}
+.ck-lbl{font-size:11px;color:var(--tx2);font-weight:500;line-height:1.2}
+.ck-item.on .ck-lbl{color:var(--tx)}
+.sub{
+  margin-top:3px;margin-bottom:5px;padding:8px 9px;
+  background:var(--sf);border-left:2px solid var(--ac-bd);
+  border-radius:0 var(--r) var(--r) 0;display:none;flex-direction:column;gap:6px}
+.sub.on{display:flex}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DEPENDENCIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.dep-pool{
+  display:flex;flex-wrap:wrap;gap:3px;min-height:26px;
+  background:var(--sf);border:1px solid var(--b);border-radius:var(--r);
+  padding:4px 6px;margin-bottom:4px}
+.dep-tag{
+  display:flex;align-items:center;gap:3px;background:var(--ac-lo);
+  border:1px solid var(--ac-bd);color:var(--ac);border-radius:3px;
+  padding:1px 6px;font-size:10.5px;font-family:var(--mono);
+  cursor:pointer;transition:all .12s}
+.dep-tag:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--rd)}
+.dep-add{display:flex;gap:4px}
+.dep-add input{flex:1}
+.dep-add button{
+  padding:0 10px;background:var(--ac-lo);border:1px solid var(--ac-bd);
+  color:var(--ac);border-radius:var(--r);font-size:14px;font-weight:700;
+  flex-shrink:0;transition:all .12s}
+.dep-add button:hover{background:rgba(97,175,239,.22)}
+.qdeps{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.qdep{
+  font-size:10px;padding:2px 6px;background:var(--panel);border:1px solid var(--b);
+  color:var(--tx3);border-radius:3px;cursor:pointer;font-family:var(--mono);transition:all .12s}
+.qdep:hover{border-color:var(--ac);color:var(--ac)}
+.qdep.on{color:var(--gn);border-color:rgba(152,195,121,.3);background:rgba(152,195,121,.06);pointer-events:none}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   FLAGS (switches)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.flags{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.flag{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--sf);border:1px solid var(--b);border-radius:var(--r);
+  padding:6px 8px;cursor:pointer;user-select:none;transition:border-color .12s}
+.flag-lbl{font-size:11px;color:var(--tx2);font-weight:500}
+.flag.on .flag-lbl{color:var(--tx)}
+.sw{
+  width:26px;height:14px;border-radius:7px;background:var(--b2);
+  position:relative;flex-shrink:0;transition:all .15s}
+.sw::after{
+  content:'';position:absolute;width:8px;height:8px;border-radius:50%;
+  background:var(--tx3);top:3px;left:3px;transition:all .15s}
+.flag.on .sw{background:var(--ac)}
+.flag.on .sw::after{left:15px;background:#fff}
+
+/* vis toggle */
+.vtog{display:flex;gap:3px}
+.vopt{
+  flex:1;padding:4px 8px;text-align:center;font-size:11px;font-weight:600;
+  background:var(--sf);border:1px solid var(--b);border-radius:var(--r);
+  cursor:pointer;color:var(--tx2);transition:all .12s;user-select:none}
+.vopt.on{background:var(--ac-lo);border-color:var(--ac-bd);color:var(--ac)}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ACTION BAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.actions{
+  flex-shrink:0;padding:10px 12px;border-top:1px solid var(--b);
+  display:flex;flex-direction:column;gap:5px;background:var(--panel)}
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  width:100%;padding:8px 12px;border-radius:var(--r);font-size:12px;
+  font-weight:600;border:none;transition:all .15s;white-space:nowrap;cursor:pointer}
+.btn-p{background:var(--ac);color:#fff}
+.btn-p:hover{filter:brightness(1.1)}
+.btn-g{background:transparent;color:var(--tx2);border:1px solid var(--b)}
+.btn-g:hover{border-color:var(--b2);color:var(--tx);background:var(--sf)}
+.btn-grn{background:rgba(152,195,121,.1);color:var(--gn);border:1px solid rgba(152,195,121,.25)}
+.btn-grn:hover{background:rgba(152,195,121,.18)}
+.btn:disabled{opacity:.32;pointer-events:none}
+.brow{display:flex;gap:5px}
+.brow .btn{flex:1}
+.btn-sm{padding:5px 8px;font-size:11px;width:auto}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   WORKBENCH (file tree + editor)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.workbench{flex:1;display:flex;overflow:hidden;min-width:0}
+
+/* File tree */
+.ft{
+  width:175px;flex-shrink:0;display:flex;flex-direction:column;
+  border-right:1px solid var(--b);background:var(--panel);overflow:hidden}
+.ft-hd{
+  padding:7px 10px;border-bottom:1px solid var(--b);
+  font-size:9.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;
+  color:var(--tx3);display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0}
+.ft-count{
+  font-size:9px;font-family:var(--mono);color:var(--ac);
+  background:var(--ac-lo);border:1px solid var(--ac-bd);
+  padding:0 4px;border-radius:3px}
+.ft-body{flex:1;overflow-y:auto;padding:6px 4px}
+.ft-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;color:var(--tx3);font-size:10.5px;text-align:center;
+  padding:16px;gap:6px;line-height:1.5}
+.ft-empty .e-ico{font-family:var(--mono);font-size:22px;opacity:.15;letter-spacing:-1px}
+.tree{font-family:var(--mono);font-size:11px}
+.t-dir{
+  display:flex;align-items:center;gap:4px;padding:2px 5px;
+  color:var(--ac);border-radius:3px;cursor:default;font-weight:500}
+.t-grp{padding-left:10px;border-left:1px solid var(--b);margin-left:8px}
+.t-file{
+  display:flex;align-items:center;gap:4px;padding:2px 5px;
+  color:var(--tx2);cursor:pointer;border-radius:3px;transition:background .1s;
+  position:relative}
+.t-file:hover{background:var(--sf);color:var(--tx)}
+.t-file.on{background:var(--ac-lo);color:var(--ac)}
+.t-ic{
+  font-size:9px;color:var(--tx3);width:16px;text-align:center;
+  flex-shrink:0;font-family:var(--mono)}
+.t-dirty{
+  position:absolute;right:5px;font-size:8px;color:var(--am);
+  display:none}
+.t-file.dirty .t-dirty{display:block}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   EDITOR AREA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.editor{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* Editor tab bar */
+.ed-tabs{
+  display:flex;align-items:stretch;background:var(--panel);
+  border-bottom:1px solid var(--b);flex-shrink:0;overflow-x:auto;
+  overflow-y:hidden;min-height:36px}
+.ed-tabs::-webkit-scrollbar{height:2px}
+.ed-tab{
+  display:flex;align-items:center;gap:5px;padding:0 12px;
+  font-size:11px;font-weight:500;color:var(--tx3);cursor:pointer;
+  border-right:1px solid var(--b);border-bottom:2px solid transparent;
+  background:var(--panel);white-space:nowrap;
+  transition:color .12s,background .12s;user-select:none;flex-shrink:0;
+  min-width:0;max-width:180px}
+.ed-tab:hover{color:var(--tx2);background:var(--sf)}
+.ed-tab.on{color:var(--tx);background:var(--bg);border-bottom-color:var(--ac)}
+.ed-tab-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ed-tab-ic{font-size:9px;color:var(--tx3);font-family:var(--mono);flex-shrink:0}
+.ed-tab.on .ed-tab-ic{color:var(--ac)}
+.ed-tab-dot{font-size:9px;color:var(--am);display:none;flex-shrink:0}
+.ed-tab.dirty .ed-tab-dot{display:block}
+.ed-tab-x{
+  font-size:13px;color:var(--tx3);width:16px;height:16px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:3px;flex-shrink:0;transition:all .12s;line-height:1}
+.ed-tab-x:hover{background:var(--b2);color:var(--tx)}
+/* manifest version sub-tabs */
+.mf-vtabs{
+  display:flex;gap:2px;padding:5px 10px 0;background:var(--bg);
+  border-bottom:1px solid var(--b);flex-shrink:0}
+.mf-vtab{
+  padding:3px 10px;font-size:10px;font-family:var(--mono);font-weight:500;
+  cursor:pointer;border-radius:4px 4px 0 0;border:1px solid transparent;
+  border-bottom:none;color:var(--tx3);background:var(--panel);
+  user-select:none;transition:all .12s}
+.mf-vtab:hover{color:var(--tx2)}
+.mf-vtab.on{
+  background:var(--bg);color:var(--ac);
+  border-color:var(--ac-bd);border-bottom:1px solid var(--bg)}
+
+/* Editor content pane */
+.ed-content{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.ed-empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;color:var(--tx3);gap:10px;text-align:center;padding:32px}
+.ed-empty-ico{
+  font-family:var(--mono);font-size:32px;opacity:.12;
+  letter-spacing:-2px;line-height:1}
+.ed-empty-title{font-size:14px;font-weight:600;color:var(--tx3)}
+.ed-empty p{font-size:12px;max-width:260px;line-height:1.6;color:var(--tx3)}
+.ed-wrap{flex:1;display:none;flex-direction:column;overflow:hidden}
+.ed-wrap.show{display:flex}
+
+/* Editor toolbar */
+.ed-toolbar{
+  display:flex;align-items:center;gap:8px;padding:5px 10px;
+  background:var(--panel);border-bottom:1px solid var(--b);
+  flex-shrink:0;min-height:32px}
+.ed-fname{
+  font-family:var(--mono);font-size:11px;color:var(--tx2);
+  flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ed-dirty-ind{font-size:10px;color:var(--am);display:none;letter-spacing:.3px}
+.ed-dirty-ind.show{display:block}
+.ed-save-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:28px;padding:3px 0;opacity:.35;pointer-events:none;transition:opacity .15s,color .15s,background .12s,border-color .12s}
+.ed-save-btn.dirty{opacity:1;pointer-events:auto;color:var(--am);border-color:rgba(229,192,123,.35);background:rgba(229,192,123,.08)}
+.ed-save-btn.dirty:hover{background:rgba(229,192,123,.16);border-color:rgba(229,192,123,.5)}
+.ed-tbtn{
+  padding:3px 9px;font-size:10.5px;font-weight:600;background:var(--sf);
+  border:1px solid var(--b);color:var(--tx2);border-radius:3px;
+  cursor:pointer;transition:all .12s;white-space:nowrap}
+.ed-tbtn:hover{border-color:var(--b2);color:var(--tx)}
+.ed-tbtn.on{background:var(--ac-lo);border-color:var(--ac-bd);color:var(--ac)}
+
+/* Code body */
+.ed-body{flex:1;position:relative;overflow:hidden;background:var(--bg)}
+.ed-pre{
+  position:absolute;inset:0;margin:0;
+  padding:12px 16px;font-family:var(--mono);font-size:12px;line-height:1.7;
+  color:var(--tx2);background:transparent;white-space:pre;overflow:auto;
+  tab-size:4;pointer-events:none;z-index:1}
+.ed-ta{
+  position:absolute;inset:0;margin:0;
+  padding:12px 16px;font-family:var(--mono);font-size:12px;line-height:1.7;
+  color:var(--tx);background:transparent;white-space:pre;overflow:auto;
+  tab-size:4;border:none;outline:none;resize:none;
+  spellcheck:false;z-index:2;display:none}
+.ed-ta:focus{outline:none}
+/* when edit mode: show textarea, hide pre */
+.ed-body.edit-mode .ed-pre{display:none}
+.ed-body.edit-mode .ed-ta{display:block}
+
+/* GitHub panel */
+.gh-body{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:9px}
+.gh-card{background:var(--panel);border:1px solid var(--b);border-radius:var(--r);overflow:hidden}
+.gh-hd{
+  padding:8px 12px;border-bottom:1px solid var(--b);font-size:11px;
+  font-weight:600;color:var(--tx);display:flex;align-items:center;gap:6px;background:var(--sf)}
+.gh-bd{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.st-pill{
+  display:flex;align-items:center;gap:7px;padding:6px 9px;
+  border-radius:var(--r);font-size:11px;background:var(--sf);border:1px solid var(--b)}
+.st-pip{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.st-pill.conn .st-pip{background:var(--gn)}
+.st-pill.disc .st-pip{background:var(--rd)}
+.gh-urow{display:flex;align-items:center;gap:7px;margin-top:2px}
+.gh-av{width:24px;height:24px;border-radius:50%;border:1px solid var(--b)}
+.gh-un{font-weight:600;font-size:12px}
+.tok-row{display:flex;gap:5px}
+.tok-row input{flex:1;font-family:var(--mono);font-size:11px}
+.tok-hint{font-size:10px;color:var(--tx3);line-height:1.5;margin-top:3px}
+.repo-list{max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.repo-item{
+  display:flex;align-items:center;gap:6px;padding:5px 8px;
+  border-radius:var(--r);cursor:pointer;background:var(--sf);
+  border:1px solid var(--b);font-size:11px;transition:all .12s}
+.repo-item:hover{border-color:var(--b2)}
+.repo-item.on{background:var(--ac-lo);border-color:var(--ac-bd)}
+.repo-nm{font-family:var(--mono);font-weight:600;color:var(--tx);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.repo-item.on .repo-nm{color:var(--ac)}
+.repo-badge{font-size:9px;padding:1px 5px;border-radius:3px;background:var(--panel);border:1px solid var(--b);color:var(--tx3);flex-shrink:0}
+.push-log{
+  background:var(--bg);border:1px solid var(--b);border-radius:var(--r);
+  padding:7px 9px;font-family:var(--mono);font-size:10.5px;color:var(--tx2);
+  max-height:100px;overflow-y:auto;white-space:pre-wrap;line-height:1.6}
+.lok{color:var(--gn)}.lerr{color:var(--rd)}.linf{color:var(--ac)}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   STATUS BAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.statusbar{
+  display:flex;align-items:center;height:24px;padding:0 12px;
+  flex-shrink:0;background:var(--ac);color:rgba(255,255,255,.9);
+  font-size:11px;font-family:var(--mono);gap:0;z-index:50}
+[data-mode="light"] .statusbar{
+  background:var(--panel);color:var(--tx2);border-top:1px solid var(--b)}
+.sb-item{
+  padding:0 8px;height:100%;display:flex;align-items:center;
+  gap:4px;white-space:nowrap;transition:background .12s;cursor:default}
+.sb-item:hover{background:rgba(0,0,0,.12)}
+[data-mode="light"] .sb-item:hover{background:var(--sf)}
+.sb-div{width:1px;height:14px;background:rgba(255,255,255,.2);flex-shrink:0}
+[data-mode="light"] .sb-div{background:var(--b)}
+.sb-r{margin-left:auto;display:flex;align-items:center}
+.sb-edit{font-weight:700;letter-spacing:.5px}
+.sb-edit.active{color:#ffef96}
+[data-mode="light"] .sb-edit.active{color:var(--am)}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TOAST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.toast{
+  position:fixed;bottom:36px;right:14px;z-index:999;
+  display:flex;align-items:center;gap:7px;background:var(--sf2);
+  border:1px solid var(--b2);border-radius:var(--r);padding:8px 12px;
+  font-size:12px;color:var(--tx);box-shadow:0 4px 24px rgba(0,0,0,.4);
+  transform:translateY(6px);opacity:0;pointer-events:none;
+  transition:all .2s;max-width:280px}
+.toast.show{transform:translateY(0);opacity:1}
+.t-pip{width:5px;height:5px;border-radius:50%;flex-shrink:0;background:var(--gn)}
+.toast.err .t-pip{background:var(--rd)}
+.toast.info .t-pip{background:var(--ac)}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SYNTAX COLOURS  (map to theme vars)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sk{color:var(--sk)}
+.ss{color:var(--ss)}
+.sn{color:var(--sn)}
+.sc{color:var(--sc);font-style:italic}
+.sb{color:var(--sb)}
+.xt{color:var(--ac)}
+.xa{color:var(--am)}
+.xv{color:var(--ss)}
+.xc{color:var(--sc);font-style:italic}
+.ch{color:var(--ac);font-weight:600}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   RESPONSIVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@media(max-width:900px){
+  body{overflow:auto}
+  .app{height:auto;min-height:100vh}
+  .main{flex-direction:column}
+  .sidebar{width:100%;border-right:none;border-bottom:1px solid var(--b)}
+  .workbench{height:520px}
+  .ft{width:140px}
+  .ver-py{display:none}
+  .tb-div,.tb-title{display:none}
+}
+@media(max-width:600px){
+  .ft{display:none}
+  .flags{grid-template-columns:1fr 1fr}
+  .palette .pal-label{display:none}
+}
+@media(min-width:1280px){.sidebar{width:325px}}
+@media(min-width:1600px){.sidebar{width:355px}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- ████ TITLEBAR ████████████████████████████████████ -->
+<div class="titlebar">
+  <div class="tb-logo">
+    <div class="tb-mark">Od</div>
+    <span class="tb-title">Module Generator</span>
+  </div>
+  <div class="tb-div"></div>
+
+  <!-- Color palette -->
+  <div class="palette">
+    <span class="pal-label">Dark</span>
+    <div class="pal-group" id="pal-dark"></div>
+    <div class="pal-sep"></div>
+    <span class="pal-label">Light</span>
+    <div class="pal-group" id="pal-light"></div>
+  </div>
+
+  <div class="tb-right">
+    <!-- Version pill -->
+    <div class="ver-pill">
+      <div class="ver-dot"></div>
+      <span class="ver-n" id="badge-ver">v17.0</span>
+      <span class="ver-py" id="badge-py">&middot; Python 3.10+</span>
+    </div>
+    <!-- Mode toggle -->
+    <button class="mode-btn" id="mode-btn" onclick="toggleMode()" title="Toggle light / dark">
+      <svg id="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg id="icon-sun"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ████ MAIN ████████████████████████████████████████ -->
+<div class="main">
+
+<!-- ■■■ SIDEBAR ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ -->
+<div class="sidebar">
+  <div class="ptabs">
+    <div class="ptab on"  data-pane="config" onclick="switchPane(this)">Config</div>
+    <div class="ptab"     data-pane="github" onclick="switchPane(this)">GitHub</div>
+    <div class="ptab"     data-pane="open"   onclick="switchPane(this)">Open</div>
+  </div>
+
+  <!-- ═══ CONFIG PANE ═══ -->
+  <div class="pane" id="pane-config">
+
+    <!-- Version -->
+    <div class="sec">
+      <div class="sh">
+        Odoo Version
+        <div class="sh-r">
+          <span class="sh-badge" id="ver-count">1</span>
+          <button class="micro-btn" onclick="clearVers()">Clear</button>
+        </div>
+      </div>
+      <div class="vmode">
+        <div class="vmode-btn on" id="vmode-single" onclick="setVmode('single',this)">Single</div>
+        <div class="vmode-btn"    id="vmode-range"  onclick="setVmode('range',this)">Range</div>
+        <div class="vmode-btn"    id="vmode-multi"  onclick="setVmode('multi',this)">Multi</div>
+      </div>
+      <div class="vrange-row" id="vrange-row">
+        <div class="row" style="margin:0">
+          <label class="lbl">From</label>
+          <select id="vrange-from" onchange="applyRange()">
+            {% for v in versions %}<option value="{{ v }}"{% if v=='11.0'%} selected{% endif %}>{{ v }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="row" style="margin:0">
+          <label class="lbl">To</label>
+          <select id="vrange-to" onchange="applyRange()">
+            {% for v in versions %}<option value="{{ v }}"{% if v=='19.0'%} selected{% endif %}>{{ v }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="vgrid" id="vgrid">
+        {% for v in versions %}
+        <div class="vbtn{% if v=='17.0'%} sel primary{% endif %}"
+             data-v="{{ v }}"
+             onclick="clickVer('{{ v }}',event)"
+             oncontextmenu="setPrimary('{{ v }}');return false"
+             title="{{ v }} — right-click to set as primary">
+          {{ v }}<span class="vs">py{% if v in ['11.0','12.0'] %}3.5{% elif v in ['13.0','14.0'] %}3.6{% elif v=='15.0' %}3.8{% elif v=='19.0' %}3.11{% else %}3.10{% endif %}</span>
+          <span class="vck">&#10003;</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="sel-tags" id="sel-tags"></div>
+      <div class="vhint" id="vhint">Single mode — click a version to select</div>
+      <div class="compat">
+        <div class="cr"><span class="ck2">Python</span><span class="cv" id="c-py">3.10+</span></div>
+        <div class="cr" id="c-depr-row" style="display:none"><span class="ck2">Removed</span><span class="cw" id="c-depr"></span></div>
+        <div class="cr" style="align-items:flex-start"><span class="ck2">Features</span><div class="feats" id="c-feats"></div></div>
+      </div>
+    </div>
+
+    <!-- Identity -->
+    <div class="sec">
+      <div class="sh">Identity</div>
+      <div class="row">
+        <label class="lbl">Technical name <span class="req">*</span></label>
+        <input type="text" id="f-name" value="my_custom_module">
+        <span class="hint">snake_case — folder name</span>
+      </div>
+      <div class="row">
+        <label class="lbl">Display name <span class="req">*</span></label>
+        <input type="text" id="f-dname" value="My Custom Module">
+      </div>
+      <div class="row">
+        <label class="lbl">Version suffix</label>
+        <input type="text" id="f-ver" value="1.0.0" oninput="updateVerHint()">
+        <span class="hint" id="ver-hint">Full: <b>17.0.1.0.0</b></span>
+      </div>
+      <div class="row">
+        <label class="lbl">Summary</label>
+        <input type="text" id="f-summary" placeholder="One-line description">
+      </div>
+      <div class="row">
+        <label class="lbl">Description</label>
+        <textarea id="f-desc" rows="2" placeholder="Detailed description..."></textarea>
+      </div>
+      <div class="g2">
+        <div class="row">
+          <label class="lbl">Author</label>
+          <input type="text" id="f-author" placeholder="Name / Company">
+        </div>
+        <div class="row">
+          <label class="lbl">License</label>
+          <select id="f-lic">
+            <option value="LGPL-3">LGPL-3</option>
+            <option value="GPL-3">GPL-3</option>
+            <option value="OPL-1">OPL-1</option>
+            <option value="AGPL-3" id="opt-agpl" style="display:none">AGPL-3</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <label class="lbl">Website</label>
+        <input type="url" id="f-website" placeholder="https://example.com">
+      </div>
+      <div class="row">
+        <label class="lbl">Category</label>
+        <select id="f-cat">
+          <option value="">— Select —</option>
+          {% for c in categories %}<option value="{{ c }}"{% if c=='Technical'%} selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Pricing -->
+    <div class="sec">
+      <div class="sh">Pricing</div>
+      <div class="ck-item" onclick="ckToggle(this,'pricing_enabled')">
+        <input type="checkbox"><div class="ck-box">&#10003;</div>
+        <span class="ck-lbl">Enable Apps Store pricing</span>
+      </div>
+      <div class="sub" id="sub-pricing">
+        <div class="pair">
+          <div class="row" style="margin:0"><label class="lbl">Price</label><input type="number" id="f-price" placeholder="0.00" min="0" step="0.01"></div>
+          <div class="row" style="margin:0"><label class="lbl">Currency</label>
+            <select id="f-currency"><option value="EUR">EUR</option><option value="USD">USD</option><option value="GBP">GBP</option></select>
+          </div>
+        </div>
+        <div class="ck-item" onclick="ckToggle(this,'has_pricing')">
+          <input type="checkbox"><div class="ck-box">&#10003;</div>
+          <span class="ck-lbl">Generate pricelist XML file</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dependencies -->
+    <div class="sec">
+      <div class="sh">Dependencies</div>
+      <div class="dep-pool" id="dep-pool"></div>
+      <div class="dep-add">
+        <input type="text" id="dep-in" placeholder="Add dependency..." onkeydown="if(event.key==='Enter')addDep()">
+        <button onclick="addDep()">+</button>
+      </div>
+      <div class="qdeps">
+        {% for d in common_depends %}<span class="qdep" id="qd-{{ d }}" onclick="qDep('{{ d }}')">{{ d }}</span>{% endfor %}
+      </div>
+    </div>
+
+    <!-- Model -->
+    <div class="sec">
+      <div class="sh">Model</div>
+      <div class="ck-item" onclick="ckToggle(this,'has_models')">
+        <input type="checkbox"><div class="ck-box">&#10003;</div>
+        <span class="ck-lbl">Generate model file</span>
+      </div>
+      <div class="sub" id="sub-models">
+        <div class="row" style="margin:0"><label class="lbl">Model name</label><input type="text" id="f-model" value="my.custom.model"></div>
+        <div class="ck-item" onclick="ckToggle(this,'inherit_mail')">
+          <input type="checkbox"><div class="ck-box">&#10003;</div>
+          <span class="ck-lbl">Inherit mail.thread + activity</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Views -->
+    <div class="sec">
+      <div class="sh">Views &amp; Controllers</div>
+      <div class="cks">
+        <div class="ck-item" onclick="ckToggle(this,'has_views')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">List / Form / Search</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'has_menus')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">Menu items</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'has_wizard')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">Wizard</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'has_config')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">Config settings</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'has_reports')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">QWeb report</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'has_controllers')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">HTTP controller</span></div>
+      </div>
+    </div>
+
+    <!-- Data -->
+    <div class="sec">
+      <div class="sh">Data Files</div>
+      <div class="cks">
+        <div class="ck-item" onclick="ckToggle(this,'has_security')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">Security / ACL</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'has_data')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">Static data XML</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'has_cron')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">Scheduled action</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'has_email_templates')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">Email templates</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'has_demo')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">Demo data</span></div>
+      </div>
+    </div>
+
+    <!-- Assets -->
+    <div class="sec">
+      <div class="sh">Static Assets</div>
+      <div class="cks">
+        <div class="ck-item" onclick="ckToggle(this,'has_js')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">JavaScript / OWL</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'has_css')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">CSS stylesheet</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'has_qweb')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">QWeb templates</span></div>
+        <div class="ck-item" onclick="ckToggle(this,'images')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">Banner image</span></div>
+      </div>
+      <div class="hint" id="asset-note" style="margin-top:5px;display:none"></div>
+    </div>
+
+    <!-- Advanced -->
+    <div class="sec" id="sec-adv" style="display:none">
+      <div class="sh">Advanced (v16+)</div>
+      <div class="cks c1">
+        <div class="ck-item" onclick="ckToggle(this,'has_cloc_exclude')">
+          <input type="checkbox"><div class="ck-box">&#10003;</div>
+          <span class="ck-lbl">cloc_exclude — skip XML line count</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flags -->
+    <div class="sec">
+      <div class="sh">Module Flags</div>
+      <div class="flags">
+        <div class="flag on" id="flag-installable"  onclick="flagToggle(this,'installable')"><span class="flag-lbl">Installable</span><div class="sw"></div></div>
+        <div class="flag"    id="flag-application"  onclick="flagToggle(this,'application')"><span class="flag-lbl">Application</span><div class="sw"></div></div>
+        <div class="flag"    id="flag-auto_install" onclick="flagToggle(this,'auto_install')"><span class="flag-lbl">Auto install</span><div class="sw"></div></div>
+      </div>
+    </div>
+
+  </div><!-- /config -->
+
+  <!-- ═══ GITHUB PANE ═══ -->
+  <div class="pane off" id="pane-github">
+    <div class="gh-body" style="padding:0">
+      <!-- Auth -->
+      <div class="gh-card">
+        <div class="gh-hd">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          Authentication
+        </div>
+        <div class="gh-bd">
+          <div class="st-pill disc" id="gh-status"><div class="st-pip"></div><span id="gh-stxt">Not connected</span></div>
+          <div id="gh-urow" style="display:none" class="gh-urow">
+            <img class="gh-av" id="gh-av" src="" alt="">
+            <span class="gh-un" id="gh-un"></span>
+            <button class="btn btn-g btn-sm" style="margin-left:auto" onclick="ghDisconnect()">Disconnect</button>
+          </div>
+          <div id="gh-tok-wrap">
+            <label class="lbl">Personal Access Token</label>
+            <div class="tok-row">
+              <input type="password" id="gh-tok" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+              <button class="btn btn-p btn-sm" style="width:auto;flex-shrink:0" onclick="ghConnect()">Connect</button>
+            </div>
+            <div class="tok-hint">Requires <code>repo</code> scope &mdash; <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">generate token</a></div>
+          </div>
+        </div>
+      </div>
+      <!-- Repo -->
+      <div class="gh-card" id="gh-repo-card" style="display:none">
+        <div class="gh-hd">Repository</div>
+        <div class="gh-bd">
+          <div class="vtog" id="rm-tog">
+            <div class="vopt on" onclick="setRepoMode('existing',this)">Use existing</div>
+            <div class="vopt"    onclick="setRepoMode('new',this)">Create new</div>
+          </div>
+          <div id="rm-existing">
+            <div class="row" style="margin-bottom:4px"><input type="text" id="repo-search" placeholder="Search repos..." oninput="filterRepos()"></div>
+            <div class="repo-list" id="repo-list"><div style="color:var(--tx3);font-size:11px;padding:4px">Loading...</div></div>
+          </div>
+          <div id="rm-new" style="display:none">
+            <div class="row"><label class="lbl">Repository name</label><input type="text" id="new-repo-nm" placeholder="my_odoo_module"></div>
+            <div class="row"><label class="lbl">Description</label><input type="text" id="new-repo-desc"></div>
+            <div class="row"><label class="lbl">Visibility</label>
+              <div class="vtog" id="vis-tog">
+                <div class="vopt on" onclick="setVis('public',this)">Public</div>
+                <div class="vopt"    onclick="setVis('private',this)">Private</div>
+              </div>
+            </div>
+            <div class="cks" style="margin-bottom:6px">
+              <div class="ck-item on" onclick="ckToggle(this,'new_has_issues')"><input type="checkbox" checked><div class="ck-box" style="background:var(--ac);border-color:var(--ac);color:#fff">&#10003;</div><span class="ck-lbl">Issues</span></div>
+              <div class="ck-item"    onclick="ckToggle(this,'new_has_wiki')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">Wiki</span></div>
+            </div>
+            <button class="btn btn-g btn-sm" onclick="ghCreateRepo()" style="width:100%">Create Repository</button>
+          </div>
+        </div>
+      </div>
+      <!-- Push options -->
+      <div class="gh-card" id="gh-push-card" style="display:none">
+        <div class="gh-hd">Push Options</div>
+        <div class="gh-bd">
+          <div class="g2">
+            <div class="row" style="margin:0"><label class="lbl">Branch</label><input type="text" id="gh-branch" value="main"></div>
+            <div class="row" style="margin:0"><label class="lbl">Path prefix</label><input type="text" id="gh-prefix" placeholder="addons/"></div>
+          </div>
+          <div class="row"><label class="lbl">Commit message</label><input type="text" id="gh-msg" value="feat: add Odoo module via generator"></div>
+          <div class="cks c1">
+            <div class="ck-item on" onclick="ckToggle(this,'gh_gitignore')"><input type="checkbox" checked><div class="ck-box" style="background:var(--ac);border-color:var(--ac);color:#fff">&#10003;</div><span class="ck-lbl">Add .gitignore</span></div>
+            <div class="ck-item"   onclick="ckToggle(this,'gh_readme')"><input type="checkbox"><div class="ck-box">&#10003;</div><span class="ck-lbl">Add README.md</span></div>
+          </div>
+          <button class="btn btn-p" onclick="doPush()">Push to GitHub</button>
+        </div>
+      </div>
+      <!-- Log -->
+      <div class="gh-card" id="gh-log-card" style="display:none">
+        <div class="gh-hd">Push Log</div>
+        <div class="gh-bd"><div class="push-log" id="push-log"></div></div>
+      </div>
+    </div>
+  </div><!-- /github -->
+
+  <!-- ═══ OPEN PANE ═══ -->
+  <div class="pane off" id="pane-open">
+    <div class="sec">
+      <div class="sh">Load from GitHub</div>
+      <p class="hint" style="margin-bottom:8px">Fetches <code>__manifest__.py</code> and pre-fills the form. Requires GitHub connection.</p>
+      <div class="row"><label class="lbl">Repository (owner/repo)</label><input type="text" id="load-repo" placeholder="owner/repository"></div>
+      <div class="row"><label class="lbl">Module path</label><input type="text" id="load-path" placeholder="addons/my_module"></div>
+      <div class="row"><label class="lbl">Branch</label><input type="text" id="load-branch" value="main"></div>
+      <button class="btn btn-g btn-sm" style="margin-top:4px;width:100%" onclick="loadFromGH()">Load Module</button>
+    </div>
+    <div class="sec" style="margin-top:14px">
+      <div class="sh">Paste Manifest</div>
+      <div class="row"><textarea id="paste-mf" rows="9" placeholder="# -*- coding: utf-8 -*-&#10;{&#10;    'name': 'My Module',&#10;    ...&#10;}"></textarea></div>
+      <button class="btn btn-g btn-sm" style="width:100%" onclick="parseAndLoad()">Parse &amp; Load</button>
+    </div>
+  </div><!-- /open -->
+
+  <!-- Action bar -->
+  <div class="actions">
+    <button class="btn btn-p" onclick="generate()">Generate Module</button>
+    <div class="brow">
+      <button class="btn btn-g" id="btn-dl" onclick="downloadZip()" disabled id="btn-dl">
+        Download .zip
+      </button>
+      <button class="btn btn-grn" id="btn-push" onclick="quickPush()" style="display:none">Push</button>
+    </div>
+  </div>
+
+</div><!-- /sidebar -->
+
+<!-- ■■■ WORKBENCH ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ -->
+<div class="workbench">
+
+  <!-- File tree -->
+  <div class="ft">
+    <div class="ft-hd">
+      Explorer
+      <span class="ft-count" id="ft-count">0</span>
+    </div>
+    <div class="ft-body" id="ft-body">
+      <div class="ft-empty">
+        <div class="e-ico">[ ]</div>
+        <div>No files yet</div>
+        <div>Generate a module to browse files</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Editor -->
+  <div class="editor">
+    <!-- File tabs -->
+    <div class="ed-tabs" id="ed-tabs">
+      <!-- populated by JS -->
+    </div>
+    <!-- Manifest version sub-tabs (shown when manifest tab active + multi-version) -->
+    <div class="mf-vtabs" id="mf-vtabs" style="display:none"></div>
+    <!-- Content -->
+    <div class="ed-content">
+      <div class="ed-empty" id="ed-empty">
+        <div class="ed-empty-ico">{ &nbsp; }</div>
+        <div class="ed-empty-title">Nothing open</div>
+        <p>Configure your module and click <kbd>Generate</kbd><br>then select a file to preview or edit it.</p>
+      </div>
+      <div class="ed-wrap" id="ed-wrap">
+        <div class="ed-toolbar">
+          <span class="ed-fname" id="ed-fname">__manifest__.py</span>
+          <span class="ed-dirty-ind" id="ed-dirty">●</span>
+          <button class="ed-tbtn" id="ed-edit-btn" onclick="toggleEdit()">Edit</button>
+          <button class="ed-tbtn ed-save-btn" id="ed-save-btn" onclick="saveCurrentFile()" title="Save (Ctrl+S)">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block">
+              <rect x="1" y="1" width="14" height="14" rx="1.5" stroke="currentColor" stroke-width="1.4" fill="none"/>
+              <rect x="4" y="1" width="6" height="5" rx="0.5" fill="currentColor" opacity=".7"/>
+              <rect x="5.5" y="1.5" width="1.5" height="3.5" rx="0.3" fill="var(--bg)" opacity=".9"/>
+              <rect x="3" y="8" width="10" height="6" rx="0.8" fill="currentColor" opacity=".55"/>
+            </svg>
+          </button>
+          <button class="ed-tbtn" onclick="copyEditor()">Copy</button>
+        </div>
+        <div class="ed-body" id="ed-body">
+          <pre class="ed-pre" id="ed-pre"></pre>
+          <textarea class="ed-ta" id="ed-ta"
+            spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"
+            oninput="onEditorInput()"
+            onkeydown="onEditorKey(event)"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /workbench -->
+</div><!-- /main -->
+
+<!-- ████ STATUS BAR █████████████████████████████████ -->
+<div class="statusbar">
+  <div class="sb-item" id="sb-theme" onclick="cyclePalette()" title="Click to cycle theme" style="cursor:pointer">
+    <span id="sb-theme-name">One Dark</span>
+  </div>
+  <div class="sb-div"></div>
+  <div class="sb-item" id="sb-ver-item">
+    <span id="sb-ver">v17.0</span>
+  </div>
+  <div class="sb-div"></div>
+  <div class="sb-item"><span id="sb-files">0 files</span></div>
+  <div class="sb-r">
+    <div class="sb-div"></div>
+    <div class="sb-item"><span id="sb-lang">Python</span></div>
+    <div class="sb-div"></div>
+    <div class="sb-item sb-edit" id="sb-edit">VIEW</div>
+  </div>
+</div>
+
+</div><!-- /app -->
+<div class="toast" id="toast"><div class="t-pip"></div><span id="toast-msg"></span></div>
+
+<script>
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   THEME SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+const THEMES = {
+  /* ─ dark ─ */
+  'one-dark':    { mode:'dark',  label:'One Dark',        dot:'#61afef',
+    v:{'--bg':'#282c34','--panel':'#21252b','--sf':'#2c313c','--sf2':'#323842','--b':'#3e4451','--b2':'#545d6b','--tx':'#abb2bf','--tx2':'#636d83','--tx3':'#4b5263','--ac':'#61afef','--ac-lo':'rgba(97,175,239,.14)','--ac-bd':'rgba(97,175,239,.3)','--gn':'#98c379','--rd':'#e06c75','--am':'#e5c07b','--sk':'#c678dd','--ss':'#98c379','--sn':'#d19a66','--sc':'#5c6370','--sb':'#e5c07b'}},
+  'dracula':     { mode:'dark',  label:'Dracula',          dot:'#bd93f9',
+    v:{'--bg':'#282a36','--panel':'#1e1f29','--sf':'#2a2d3e','--sf2':'#313446','--b':'#44475a','--b2':'#6272a4','--tx':'#f8f8f2','--tx2':'#6272a4','--tx3':'#44475a','--ac':'#bd93f9','--ac-lo':'rgba(189,147,249,.14)','--ac-bd':'rgba(189,147,249,.35)','--gn':'#50fa7b','--rd':'#ff5555','--am':'#ffb86c','--sk':'#ff79c6','--ss':'#f1fa8c','--sn':'#bd93f9','--sc':'#6272a4','--sb':'#ffb86c'}},
+  'tokyo-night': { mode:'dark',  label:'Tokyo Night',      dot:'#7aa2f7',
+    v:{'--bg':'#1a1b2e','--panel':'#16213e','--sf':'#1f2336','--sf2':'#252a42','--b':'#2a2f48','--b2':'#414868','--tx':'#a9b1d6','--tx2':'#565f89','--tx3':'#3b4261','--ac':'#7aa2f7','--ac-lo':'rgba(122,162,247,.13)','--ac-bd':'rgba(122,162,247,.32)','--gn':'#9ece6a','--rd':'#f7768e','--am':'#e0af68','--sk':'#bb9af7','--ss':'#9ece6a','--sn':'#ff9e64','--sc':'#565f89','--sb':'#e0af68'}},
+  'monokai':     { mode:'dark',  label:'Monokai',          dot:'#a6e22e',
+    v:{'--bg':'#272822','--panel':'#1e1f1c','--sf':'#2d2e27','--sf2':'#35362e','--b':'#3e3d32','--b2':'#6e6e5e','--tx':'#f8f8f2','--tx2':'#75715e','--tx3':'#49483e','--ac':'#a6e22e','--ac-lo':'rgba(166,226,46,.12)','--ac-bd':'rgba(166,226,46,.3)','--gn':'#a6e22e','--rd':'#f92672','--am':'#fd971f','--sk':'#f92672','--ss':'#e6db74','--sn':'#ae81ff','--sc':'#75715e','--sb':'#fd971f'}},
+  'github-dark': { mode:'dark',  label:'GitHub Dark',      dot:'#58a6ff',
+    v:{'--bg':'#0d1117','--panel':'#161b22','--sf':'#1c2128','--sf2':'#22272e','--b':'#30363d','--b2':'#484f58','--tx':'#e6edf3','--tx2':'#7d8590','--tx3':'#3d444d','--ac':'#58a6ff','--ac-lo':'rgba(88,166,255,.12)','--ac-bd':'rgba(88,166,255,.3)','--gn':'#3fb950','--rd':'#f85149','--am':'#d29922','--sk':'#ff7b72','--ss':'#a5d6ff','--sn':'#79c0ff','--sc':'#8b949e','--sb':'#ffab70'}},
+  /* ─ light ─ */
+  'github-light':{ mode:'light', label:'GitHub Light',     dot:'#0969da',
+    v:{'--bg':'#ffffff','--panel':'#f6f8fa','--sf':'#f0f3f6','--sf2':'#e8ecf0','--b':'#d0d7de','--b2':'#9ba9b5','--tx':'#1f2328','--tx2':'#636c76','--tx3':'#9ba3ac','--ac':'#0969da','--ac-lo':'rgba(9,105,218,.1)','--ac-bd':'rgba(9,105,218,.3)','--gn':'#1a7f37','--rd':'#cf222e','--am':'#9a6700','--sk':'#cf222e','--ss':'#0a3069','--sn':'#0550ae','--sc':'#68717a','--sb':'#953800'}},
+  'solarized':   { mode:'light', label:'Solarized',        dot:'#268bd2',
+    v:{'--bg':'#fdf6e3','--panel':'#eee8d5','--sf':'#f5f0e4','--sf2':'#ece7d5','--b':'#d3cbb8','--b2':'#b3a99a','--tx':'#657b83','--tx2':'#93a1a1','--tx3':'#c0bdb4','--ac':'#268bd2','--ac-lo':'rgba(38,139,210,.12)','--ac-bd':'rgba(38,139,210,.35)','--gn':'#859900','--rd':'#dc322f','--am':'#b58900','--sk':'#859900','--ss':'#2aa198','--sn':'#d33682','--sc':'#93a1a1','--sb':'#cb4b16'}},
+  'catppuccin':  { mode:'light', label:'Catppuccin',       dot:'#1e66f5',
+    v:{'--bg':'#eff1f5','--panel':'#e6e9ef','--sf':'#dce0e8','--sf2':'#ccd0da','--b':'#bcc0cc','--b2':'#9ca0b0','--tx':'#4c4f69','--tx2':'#8c8fa1','--tx3':'#b5b8cc','--ac':'#1e66f5','--ac-lo':'rgba(30,102,245,.11)','--ac-bd':'rgba(30,102,245,.3)','--gn':'#40a02b','--rd':'#d20f39','--am':'#df8e1d','--sk':'#d20f39','--ss':'#40a02b','--sn':'#fe640b','--sc':'#8c8fa1','--sb':'#e64553'}},
+  'one-light':   { mode:'light', label:'One Light',        dot:'#4078f2',
+    v:{'--bg':'#fafafa','--panel':'#f0f0f0','--sf':'#f5f5f5','--sf2':'#ebebeb','--b':'#e5e5e5','--b2':'#cccccc','--tx':'#383a42','--tx2':'#a0a1a7','--tx3':'#c6c6c6','--ac':'#4078f2','--ac-lo':'rgba(64,120,242,.11)','--ac-bd':'rgba(64,120,242,.3)','--gn':'#50a14f','--rd':'#e45649','--am':'#c18401','--sk':'#a626a4','--ss':'#50a14f','--sn':'#986801','--sc':'#a0a1a7','--sb':'#c18401'}},
+  'quiet-light': { mode:'light', label:'Quiet Light',      dot:'#4070a0',
+    v:{'--bg':'#f5f5f5','--panel':'#ebebeb','--sf':'#f0f0f0','--sf2':'#e3e3e3','--b':'#dddddd','--b2':'#bbbbbb','--tx':'#333333','--tx2':'#777777','--tx3':'#aaaaaa','--ac':'#4070a0','--ac-lo':'rgba(64,112,160,.11)','--ac-bd':'rgba(64,112,160,.3)','--gn':'#008000','--rd':'#a31515','--am':'#b08000','--sk':'#7c00a0','--ss':'#008000','--sn':'#098658','--sc':'#888888','--sb':'#7c00a0'}},
+};
+const THEME_KEYS  = Object.keys(THEMES);
+const DARK_KEYS   = THEME_KEYS.filter(k=>THEMES[k].mode==='dark');
+const LIGHT_KEYS  = THEME_KEYS.filter(k=>THEMES[k].mode==='light');
+let currentTheme  = 'one-dark';
+
+function applyTheme(name) {
+  const t = THEMES[name]; if(!t) return;
+  const root = document.documentElement;
+  Object.entries(t.v).forEach(([k,v]) => root.style.setProperty(k,v));
+  root.setAttribute('data-mode', t.mode);
+  root.setAttribute('data-theme', name);
+  currentTheme = name;
+  document.getElementById('sb-theme-name').textContent = t.label;
+  try { localStorage.setItem('odoo-gen-theme', name); } catch(_){}
+  updatePaletteUI();
+  updateModeIcon();
+}
+function updatePaletteUI() {
+  document.querySelectorAll('.swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.theme === currentTheme);
+  });
+}
+function buildPalette() {
+  DARK_KEYS.forEach(k => {
+    const s = document.createElement('div');
+    s.className = 'swatch';
+    s.dataset.theme = k;
+    s.style.background = THEMES[k].dot;
+    s.title = THEMES[k].label;
+    s.onclick = () => applyTheme(k);
+    document.getElementById('pal-dark').appendChild(s);
+  });
+  LIGHT_KEYS.forEach(k => {
+    const s = document.createElement('div');
+    s.className = 'swatch';
+    s.dataset.theme = k;
+    s.style.background = THEMES[k].dot;
+    s.title = THEMES[k].label;
+    s.onclick = () => applyTheme(k);
+    document.getElementById('pal-light').appendChild(s);
+  });
+}
+function toggleMode() {
+  const curMode = THEMES[currentTheme].mode;
+  const newMode = curMode === 'dark' ? 'light' : 'dark';
+  const keys = newMode === 'dark' ? DARK_KEYS : LIGHT_KEYS;
+  applyTheme(keys[0]);
+}
+function updateModeIcon() { /* handled by CSS attr */ }
+function cyclePalette() {
+  const idx = THEME_KEYS.indexOf(currentTheme);
+  applyTheme(THEME_KEYS[(idx+1) % THEME_KEYS.length]);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CONSTANTS & STATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+const VC = {{ version_compat|safe }};
+const ALL_VERS = ['11.0','12.0','13.0','14.0','15.0','16.0','17.0','18.0','19.0'];
+
+let selVers  = new Set(['17.0']);
+let primaryV = '17.0';
+let vmode    = 'single';
+let deps     = ['base'];
+let toggles  = { gh_gitignore:true, new_has_issues:true };
+let flags    = { installable:true, application:false, auto_install:false };
+let genData  = null;
+
+/* Editor state */
+let generatedStructure = {};
+let mfData             = {};   // { version: manifest_string }
+let editedFiles        = {};   // { filepath: content }
+let editedManifests    = {};   // { version: content }
+let openTabs           = [];   // [{ id, label, lang }]
+let activeTabId        = null;
+let isEditMode         = false;
+let activeMfVer        = null;
+
+/* GitHub */
+let ghToken='', ghUser=null, allRepos=[], selRepo=null, repoVis='public';
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   INIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+document.addEventListener('DOMContentLoaded', () => {
+  buildPalette();
+  let saved; try { saved = localStorage.getItem('odoo-gen-theme'); } catch(_){}
+  applyTheme(saved && THEMES[saved] ? saved : 'one-dark');
+  renderDeps();
+  syncVerUI();
+  // Ctrl+S / Cmd+S to save
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey||e.metaKey) && e.key==='s') {
+      e.preventDefault();
+      if (activeTabId) saveCurrentFile();
+    }
+  });
+});
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PANEL SWITCHING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+function switchPane(el) {
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.querySelectorAll('.pane').forEach(p=>p.classList.add('off'));
+  document.getElementById('pane-'+el.dataset.pane).classList.remove('off');
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   VERSION SELECTOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+function setVmode(mode, el) {
+  vmode = mode;
+  document.querySelectorAll('.vmode-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  const rr = document.getElementById('vrange-row');
+  const hint = document.getElementById('vhint');
+  if (mode==='range') {
+    rr.classList.add('show');
+    hint.textContent = 'Select a from/to range — all versions in between are included';
+    applyRange();
+  } else {
+    rr.classList.remove('show');
+    if (mode==='single') {
+      selVers = new Set([primaryV]);
+      hint.textContent = 'Single mode — click a version to select it';
+    } else {
+      hint.textContent = 'Multi mode — click to toggle · right-click to set as primary';
+    }
+    syncVerUI();
+  }
+}
+function clickVer(v, e) {
+  e && e.preventDefault();
+  if (vmode==='single') { selVers=new Set([v]); primaryV=v; }
+  else {
+    if (selVers.has(v)) {
+      if (selVers.size===1) return;
+      selVers.delete(v);
+      if (primaryV===v) primaryV = ALL_VERS.find(x=>selVers.has(x));
+    } else { selVers.add(v); }
+  }
+  syncVerUI();
+}
+function setPrimary(v) {
+  if (!selVers.has(v)) selVers.add(v);
+  primaryV = v;
+  syncVerUI();
+}
+function clearVers() { selVers=new Set([primaryV]); syncVerUI(); }
+function applyRange() {
+  const fi=ALL_VERS.indexOf(document.getElementById('vrange-from').value);
+  const ti=ALL_VERS.indexOf(document.getElementById('vrange-to').value);
+  const lo=Math.min(fi,ti), hi=Math.max(fi,ti);
+  selVers=new Set(ALL_VERS.slice(lo,hi+1));
+  if (!selVers.has(primaryV)) primaryV=ALL_VERS[hi];
+  syncVerUI();
+}
+function syncVerUI() {
+  const sorted = ALL_VERS.filter(v=>selVers.has(v));
+  document.querySelectorAll('.vbtn').forEach(b => {
+    const v=b.dataset.v;
+    b.classList.toggle('sel', selVers.has(v));
+    b.classList.toggle('primary', v===primaryV);
+  });
+  // Tags
+  document.getElementById('sel-tags').innerHTML = sorted.map(v =>
+    v===primaryV
+      ? `<span class="sv-tag pri" title="Primary version">${v} ★</span>`
+      : `<span class="sv-tag" onclick="setPrimary('${v}')" title="Set as primary">${v}</span>`
+  ).join('');
+  // Count badge
+  document.getElementById('ver-count').textContent = selVers.size;
+  // Topbar badge
+  const bv = document.getElementById('badge-ver');
+  if (sorted.length===1) bv.textContent='v'+sorted[0];
+  else if (sorted.length===ALL_VERS.length) bv.textContent='v11–v19';
+  else bv.textContent='v'+sorted[0]+'–v'+sorted[sorted.length-1];
+  // Python
+  const c=VC[primaryV];
+  document.getElementById('badge-py').textContent='\xb7 Python '+c.python;
+  document.getElementById('c-py').textContent=c.python;
+  const dr=document.getElementById('c-depr-row');
+  if (c.deprecated.length) { dr.style.display='flex'; document.getElementById('c-depr').textContent=c.deprecated.join(', '); }
+  else dr.style.display='none';
+  // Features union
+  const allF=new Set(); sorted.forEach(v=>VC[v].features.forEach(f=>allF.add(f)));
+  document.getElementById('c-feats').innerHTML=[...allF].map(f=>`<span class="feat">${f}</span>`).join('');
+  // Advanced
+  document.getElementById('sec-adv').style.display=sorted.some(v=>parseFloat(v)>=16)?'':'none';
+  // AGPL
+  document.getElementById('opt-agpl').style.display=sorted.some(v=>VC[v].license_options.includes('AGPL-3'))?'':'none';
+  // Download label
+  const dl=document.getElementById('btn-dl');
+  if (dl) dl.textContent = sorted.length>1 ? `Download bundle (${sorted.length} vers)` : 'Download .zip';
+  // Statusbar
+  document.getElementById('sb-ver').textContent='v'+primaryV;
+  updateVerHint(); updateAssetNote();
+}
+function updateVerHint() {
+  const suf=document.getElementById('f-ver').value||'1.0.0';
+  const sorted=ALL_VERS.filter(v=>selVers.has(v));
+  const h=document.getElementById('ver-hint');
+  if (sorted.length===1) h.innerHTML='Full: <b>'+sorted[0]+'.'+suf+'</b>';
+  else h.innerHTML='Primary: <b>'+primaryV+'.'+suf+'</b> + '+sorted.filter(v=>v!==primaryV).join(', ');
+}
+function updateAssetNote() {
+  const n=document.getElementById('asset-note');
+  if (toggles.has_js||toggles.has_css||toggles.has_qweb) {
+    const vn=parseFloat(primaryV); n.style.display='';
+    n.textContent = vn>=16 ? 'v'+primaryV+': assets dict (web.assets_backend)'
+      : vn>=14 ? 'v'+primaryV+': OWL via odoo.define wrapper'
+      : 'v'+primaryV+': legacy Widget + qweb manifest key';
+  } else n.style.display='none';
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CHECKBOXES / FLAGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+function ckToggle(el, key) {
+  el.classList.toggle('on');
+  const cb=el.querySelector('input'); if(cb) cb.checked=el.classList.contains('on');
+  toggles[key]=el.classList.contains('on');
+  if (key==='has_models')      setSub('sub-models', toggles[key]);
+  if (key==='pricing_enabled') setSub('sub-pricing',toggles[key]);
+  if (['has_js','has_css','has_qweb'].includes(key)) updateAssetNote();
+}
+function setSub(id,show){ const el=document.getElementById(id); if(el) el.classList.toggle('on',show); }
+function flagToggle(el,key){ el.classList.toggle('on'); flags[key]=el.classList.contains('on'); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DEPENDENCIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+function renderDeps() {
+  document.getElementById('dep-pool').innerHTML=deps.map(d=>
+    `<span class="dep-tag" onclick="removeDep('${d}')" title="Remove">${d} &times;</span>`
+  ).join('');
+  document.querySelectorAll('.qdep').forEach(el=>{
+    el.classList.toggle('on',deps.includes(el.id.replace('qd-','')));
+  });
+}
+function addDep(){ const el=document.getElementById('dep-in'); const v=el.value.trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,''); if(v&&!deps.includes(v)){deps.push(v);renderDeps();} el.value=''; }
+function qDep(d){ if(!deps.includes(d)){deps.push(d);renderDeps();} }
+function removeDep(d){ deps=deps.filter(x=>x!==d); renderDeps(); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   COLLECT FORM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+function collectForm() {
+  return {
+    name:           document.getElementById('f-name').value.trim().toLowerCase().replace(/\s+/g,'_')||'my_module',
+    display_name:   document.getElementById('f-dname').value.trim()||'My Module',
+    odoo_version:   primaryV,
+    odoo_versions:  ALL_VERS.filter(v=>selVers.has(v)),
+    custom_version: document.getElementById('f-ver').value.trim()||'1.0.0',
+    summary:        document.getElementById('f-summary').value,
+    description:    document.getElementById('f-desc').value,
+    author:         document.getElementById('f-author').value,
+    website:        document.getElementById('f-website').value,
+    category:       document.getElementById('f-cat').value,
+    license:        document.getElementById('f-lic').value,
+    depends:        [...deps],
+    model_name:     document.getElementById('f-model').value||'my.custom.model',
+    price:          parseFloat(document.getElementById('f-price').value)||null,
+    currency:       document.getElementById('f-currency').value,
+    ...toggles, ...flags
+  };
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GENERATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+async function generate() {
+  const data=collectForm();
+  try {
+    const r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const res=await r.json();
+    genData=data;
+    generatedStructure=res.structure;
+    mfData=res.manifests||{[primaryV]:res.manifest};
+    editedFiles={};
+    editedManifests={};
+    openTabs=[];
+    activeMfVer=primaryV;
+    // Open manifest tab
+    openTab('__manifest__','__manifest__.py','py');
+    // Build file tree
+    buildFileTree(res.structure, data.name);
+    // Update UI
+    document.getElementById('ft-count').textContent=Object.keys(res.structure).length;
+    document.getElementById('sb-files').textContent=Object.keys(res.structure).length+' files';
+    document.getElementById('btn-dl').disabled=false;
+    if(ghUser&&selRepo) document.getElementById('btn-push').style.display='';
+    const vc=(data.odoo_versions||[data.odoo_version]).length;
+    toast('Generated '+Object.keys(res.structure).length+' files'+(vc>1?' · '+vc+' manifests':''));
+  } catch(e){ toast('Error: '+e.message,true); }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   EDITOR TABS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+function openTab(id, label, lang) {
+  if (!openTabs.find(t=>t.id===id)) openTabs.push({id,label,lang,dirty:false});
+  setActiveTab(id);
+  renderTabs();
+}
+function closeTab(id, e) {
+  e && e.stopPropagation();
+  openTabs=openTabs.filter(t=>t.id!==id);
+  if (activeTabId===id) {
+    if (openTabs.length>0) setActiveTab(openTabs[openTabs.length-1].id);
+    else { activeTabId=null; showEmptyEditor(); }
+  }
+  renderTabs();
+}
+function setActiveTab(id) {
+  activeTabId=id;
+  const tab=openTabs.find(t=>t.id===id);
+  if (!tab) return;
+  let content='', lang=tab.lang||'py';
+  if (id==='__manifest__') {
+    if (!activeMfVer || !mfData[activeMfVer]) activeMfVer=primaryV;
+    content=editedManifests[activeMfVer]||mfData[activeMfVer]||'';
+    updateMfVtabs();
+  } else {
+    content=editedFiles[id]||generatedStructure[id]||'';
+    document.getElementById('mf-vtabs').style.display='none';
+    lang=getLang(tab.label||id);
+  }
+  showEditor(id, tab.label||id, content, lang);
+}
+function renderTabs() {
+  const strip=document.getElementById('ed-tabs');
+  const icons={py:'py',xml:'xml',csv:'csv',js:'js',css:'css',html:'htm',md:'md'};
+  strip.innerHTML=openTabs.map(tab=>{
+    const ext=(tab.label||'').split('.').pop();
+    const ic=icons[ext]||'—';
+    const isDirty = tab.id==='__manifest__'
+      ? Object.keys(editedManifests).length>0
+      : editedFiles[tab.id]!==undefined;
+    return `<div class="ed-tab${tab.id===activeTabId?' on':''}${isDirty?' dirty':''}" onclick="setActiveTab('${tab.id}')">
+      <span class="ed-tab-ic">${ic}</span>
+      <span class="ed-tab-nm">${tab.label}</span>
+      <span class="ed-tab-dot">●</span>
+      <span class="ed-tab-x" onclick="closeTab('${tab.id}',event)">&times;</span>
+    </div>`;
+  }).join('');
+}
+function updateMfVtabs() {
+  const sorted=ALL_VERS.filter(v=>v in mfData);
+  const vt=document.getElementById('mf-vtabs');
+  if (sorted.length<=1) { vt.style.display='none'; return; }
+  vt.style.display='flex';
+  vt.innerHTML=sorted.map(v=>
+    `<div class="mf-vtab${v===activeMfVer?' on':''}" onclick="switchMfVer('${v}')">${v}${v===primaryV?' ★':''}</div>`
+  ).join('');
+}
+function switchMfVer(v) {
+  // Save any edits to current version before switching
+  if (isEditMode && activeTabId==='__manifest__' && activeMfVer) {
+    editedManifests[activeMfVer]=document.getElementById('ed-ta').value;
+  }
+  activeMfVer=v;
+  const content=editedManifests[v]||mfData[v]||'';
+  document.getElementById('ed-ta').value=content;
+  document.getElementById('ed-pre').innerHTML=hlPy(content);
+  updateMfVtabs();
+  setEditMode(false);
+  toast('Viewing manifest for v'+v,'info');
+}
+function showEmptyEditor() {
+  document.getElementById('ed-empty').style.display='flex';
+  document.getElementById('ed-wrap').classList.remove('show');
+  document.getElementById('mf-vtabs').style.display='none';
+}
+function showEditor(tabId, filename, content, lang) {
+  document.getElementById('ed-empty').style.display='none';
+  document.getElementById('ed-wrap').classList.add('show');
+  document.getElementById('ed-fname').textContent=filename;
+  // Fill textarea
+  document.getElementById('ed-ta').value=content;
+  // Highlight pre
+  highlightPre(content, lang);
+  // Dirty indicator + save button
+  const isDirty = tabId==='__manifest__'
+    ? Object.keys(editedManifests).length>0
+    : editedFiles[tabId]!==undefined;
+  const di=document.getElementById('ed-dirty');
+  di.classList.toggle('show', isDirty);
+  di.textContent = isDirty ? '● unsaved' : '●';
+  document.getElementById('ed-save-btn').classList.toggle('dirty', isDirty);
+  // Reset to view mode
+  setEditMode(false);
+  // Status bar lang
+  const langLabels={py:'Python',xml:'XML',csv:'CSV',js:'JavaScript',css:'CSS',html:'HTML',md:'Markdown'};
+  document.getElementById('sb-lang').textContent=langLabels[lang]||lang.toUpperCase();
+}
+function highlightPre(content, lang) {
+  const pre=document.getElementById('ed-pre');
+  if (!content) { pre.innerHTML=''; return; }
+  switch(lang) {
+    case 'py':  pre.innerHTML=hlPy(content);  break;
+    case 'xml': case 'html': pre.innerHTML=hlXml(content); break;
+    case 'csv': pre.innerHTML=hlCsv(content); break;
+    default:    pre.textContent=content;
+  }
+}
+function getLang(filename) { return (filename.split('.').pop()||'').toLowerCase(); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   EDITOR EDIT/VIEW MODE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+function setEditMode(on) {
+  isEditMode=on;
+  const body=document.getElementById('ed-body');
+  const btn=document.getElementById('ed-edit-btn');
+  const sb=document.getElementById('sb-edit');
+  body.classList.toggle('edit-mode', on);
+  btn.classList.toggle('on', on);
+  btn.textContent=on?'View':'Edit';
+  sb.textContent=on?'EDIT':'VIEW';
+  sb.classList.toggle('active',on);
+  if (on) document.getElementById('ed-ta').focus();
+}
+function toggleEdit() {
+  if (isEditMode) {
+    // Switching view -> save content first
+    const content=document.getElementById('ed-ta').value;
+    saveEdit(content);
+    // Re-highlight
+    const tab=openTabs.find(t=>t.id===activeTabId);
+    highlightPre(content, getLang(tab?tab.label:''));
+    setEditMode(false);
+  } else {
+    setEditMode(true);
+  }
+}
+function onEditorInput() {
+  // Live-save while typing (debounced)
+  clearTimeout(onEditorInput._t);
+  onEditorInput._t=setTimeout(()=>{ saveEdit(document.getElementById('ed-ta').value); }, 300);
+}
+function onEditorKey(e) {
+  if (e.key==='Tab') {
+    e.preventDefault();
+    const ta=e.target, s=ta.selectionStart, end=ta.selectionEnd;
+    ta.value=ta.value.substring(0,s)+'    '+ta.value.substring(end);
+    ta.selectionStart=ta.selectionEnd=s+4;
+    onEditorInput();
+  }
+}
+function saveEdit(content) {
+  if (!activeTabId) return;
+  if (activeTabId==='__manifest__') {
+    editedManifests[activeMfVer]=content;
+    mfData[activeMfVer]=content;
+  } else {
+    editedFiles[activeTabId]=content;
+    generatedStructure[activeTabId]=content;
+  }
+  const di=document.getElementById('ed-dirty');
+  di.classList.add('show');
+  di.textContent='● unsaved';
+  document.getElementById('ed-save-btn').classList.add('dirty');
+  renderTabs(); // update dirty dots
+}
+
+function saveCurrentFile() {
+  if (!activeTabId) return;
+  // If in edit mode, grab textarea value; else already saved
+  const content = isEditMode
+    ? document.getElementById('ed-ta').value
+    : (activeTabId==='__manifest__'
+        ? (editedManifests[activeMfVer] || mfData[activeMfVer] || '')
+        : (editedFiles[activeTabId] || generatedStructure[activeTabId] || ''));
+  if (activeTabId==='__manifest__') {
+    editedManifests[activeMfVer]=content;
+    mfData[activeMfVer]=content;
+  } else {
+    editedFiles[activeTabId]=content;
+    generatedStructure[activeTabId]=content;
+  }
+  // Re-highlight if in view mode
+  if (!isEditMode) {
+    const tab=openTabs.find(t=>t.id===activeTabId);
+    highlightPre(content, getLang(tab?tab.label:''));
+  }
+  // Clear dirty state
+  const di=document.getElementById('ed-dirty');
+  di.classList.remove('show');
+  document.getElementById('ed-save-btn').classList.remove('dirty');
+  renderTabs();
+  // Brief flash on the button
+  const btn=document.getElementById('ed-save-btn');
+  btn.style.color='var(--gn)';
+  btn.style.borderColor='rgba(152,195,121,.4)';
+  btn.style.background='rgba(152,195,121,.1)';
+  setTimeout(()=>{ btn.style.color=''; btn.style.borderColor=''; btn.style.background=''; }, 700);
+  toast('Saved', 'info');
+}
+function copyEditor() {
+  const content=document.getElementById('ed-ta').value || document.getElementById('ed-pre').textContent;
+  navigator.clipboard.writeText(content).then(()=>{
+    const b=document.getElementById('ed-edit-btn').parentElement.querySelector('.ed-tbtn:last-child');
+    // find copy btn
+    document.querySelectorAll('.ed-tbtn').forEach(btn=>{
+      if(btn.textContent==='Copy'){btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',1800);}
+    });
+  });
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   FILE TREE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+function buildFileTree(structure, mn) {
+  const tree={};
+  for (const p of Object.keys(structure)) {
+    const parts=p.split('/'); let node=tree;
+    for (let i=0;i<parts.length-1;i++){if(!node[parts[i]])node[parts[i]]={};node=node[parts[i]];}
+    node[parts[parts.length-1]]=p;
+  }
+  const body=document.getElementById('ft-body');
+  body.innerHTML='';
+  const root=document.createElement('div'); root.className='tree';
+  const rd=document.createElement('div'); rd.className='t-dir';
+  rd.innerHTML=`<span class="t-ic" style="font-size:8px">▾</span><b>${mn}/</b>`;
+  root.appendChild(rd);
+  const rg=document.createElement('div'); rg.className='t-grp';
+  buildTreeNodes(tree, rg, structure);
+  root.appendChild(rg); body.appendChild(root);
+}
+function buildTreeNodes(node, container, structure) {
+  const dirs=[],files=[];
+  for (const [k,v] of Object.entries(node)){
+    if (typeof v==='object') dirs.push([k,v]); else files.push([k,v]);
+  }
+  for (const [name,children] of dirs){
+    const d=document.createElement('div'); d.className='t-dir';
+    d.innerHTML=`<span class="t-ic" style="font-size:8px">▾</span>${name}/`;
+    container.appendChild(d);
+    const g=document.createElement('div'); g.className='t-grp';
+    buildTreeNodes(children,g,structure);
+    container.appendChild(g);
+  }
+  for (const [name,path] of files){
+    const ext=name.split('.').pop();
+    const ic={py:'py',xml:'xml',csv:'csv',js:'js',css:'css',html:'htm',md:'md'}[ext]||'—';
+    const f=document.createElement('div');
+    f.className='t-file'; f.dataset.path=path;
+    f.innerHTML=`<span class="t-ic">${ic}</span>${name}<span class="t-dirty">●</span>`;
+    f.onclick=()=>openFileFromTree(path,name,structure[path]);
+    container.appendChild(f);
+  }
+}
+function openFileFromTree(path, name, content) {
+  openTab(path, name, getLang(name));
+  // Select in tree
+  document.querySelectorAll('.t-file').forEach(f=>f.classList.toggle('on',f.dataset.path===path));
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DOWNLOAD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+async function downloadZip() {
+  if (!genData) return;
+  const payload={
+    ...genData,
+    edited_files: editedFiles,
+    edited_manifests: editedManifests
+  };
+  const r=await fetch('/api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const blob=await r.blob();
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  const versions=genData.odoo_versions||[genData.odoo_version];
+  a.download=versions.length>1?genData.name+'_bundle.zip':genData.name+'.zip';
+  a.click();
+  toast('Downloading '+a.download);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GITHUB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+async function ghConnect(){
+  const token=document.getElementById('gh-tok').value.trim();
+  if(!token){toast('Enter a GitHub token',true);return;}
+  try{
+    const r=await fetch('/api/github/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
+    const res=await r.json();
+    if(res.valid){
+      ghToken=token;ghUser=res;
+      document.getElementById('gh-status').className='st-pill conn';
+      document.getElementById('gh-stxt').textContent='Connected as '+res.login;
+      document.getElementById('gh-urow').style.display='flex';
+      document.getElementById('gh-av').src=res.avatar_url;
+      document.getElementById('gh-un').textContent=res.login+(res.name?' ('+res.name+')':'');
+      document.getElementById('gh-tok-wrap').style.display='none';
+      document.getElementById('gh-repo-card').style.display='';
+      document.getElementById('gh-push-card').style.display='';
+      if(genData)document.getElementById('btn-push').style.display='';
+      ghLoadRepos();toast('Connected as '+res.login);
+    } else toast('Invalid token: '+(res.error||''),true);
+  }catch(e){toast('Error: '+e.message,true);}
+}
+function ghDisconnect(){
+  ghToken='';ghUser=null;selRepo=null;allRepos=[];
+  document.getElementById('gh-status').className='st-pill disc';
+  document.getElementById('gh-stxt').textContent='Not connected';
+  document.getElementById('gh-urow').style.display='none';
+  document.getElementById('gh-tok-wrap').style.display='';
+  document.getElementById('gh-tok').value='';
+  document.getElementById('gh-repo-card').style.display='none';
+  document.getElementById('gh-push-card').style.display='none';
+  document.getElementById('gh-log-card').style.display='none';
+  document.getElementById('btn-push').style.display='none';
+}
+async function ghLoadRepos(){
+  document.getElementById('repo-list').innerHTML='<div style="color:var(--tx3);font-size:11px;padding:4px">Loading...</div>';
+  try{
+    const r=await fetch('/api/github/repos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:ghToken})});
+    const res=await r.json();
+    if(res.repos){allRepos=res.repos;renderRepos(allRepos);}
+    else toast('Failed: '+(res.error||''),true);
+  }catch(e){toast('Error: '+e.message,true);}
+}
+function renderRepos(repos){
+  const el=document.getElementById('repo-list');
+  if(!repos.length){el.innerHTML='<div style="color:var(--tx3);font-size:11px;padding:4px">No repositories</div>';return;}
+  el.innerHTML=repos.map(r=>{
+    const rs=JSON.stringify(r).replace(/"/g,'&quot;');
+    return `<div class="repo-item${selRepo&&selRepo.full_name===r.full_name?' on':''}" onclick='selectRepo(${rs})'>
+      <span class="repo-nm">${r.name}</span>
+      <span class="repo-badge">${r.private?'private':'public'}</span>
+    </div>`;
+  }).join('');
+}
+function filterRepos(){const q=document.getElementById('repo-search').value.toLowerCase();renderRepos(allRepos.filter(r=>r.name.toLowerCase().includes(q)||r.full_name.toLowerCase().includes(q)));}
+function selectRepo(r){selRepo=r;document.getElementById('gh-branch').value=r.default_branch||'main';filterRepos();toast('Selected: '+r.full_name);}
+function setRepoMode(mode,el){document.querySelectorAll('#rm-tog .vopt').forEach(e=>e.classList.remove('on'));el.classList.add('on');document.getElementById('rm-existing').style.display=mode==='existing'?'':'none';document.getElementById('rm-new').style.display=mode==='new'?'':'none';}
+function setVis(mode,el){repoVis=mode;document.querySelectorAll('#vis-tog .vopt').forEach(e=>e.classList.remove('on'));el.classList.add('on');}
+async function ghCreateRepo(){
+  if(!ghToken){toast('Connect to GitHub first',true);return;}
+  const name=document.getElementById('new-repo-nm').value.trim();
+  if(!name){toast('Enter a repository name',true);return;}
+  try{
+    const r=await fetch('/api/github/create-repo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:ghToken,repo_name:name,description:document.getElementById('new-repo-desc').value,private:repoVis==='private',has_issues:!!toggles.new_has_issues,has_wiki:!!toggles.new_has_wiki})});
+    const res=await r.json();
+    if(res.success){toast('Created: '+res.repo);selRepo={full_name:res.repo,name,private:repoVis==='private',default_branch:'main',url:res.url};await ghLoadRepos();setRepoMode('existing',document.querySelector('#rm-tog .vopt'));}
+    else toast('Error: '+(res.error||JSON.stringify(res.errors||'')),true);
+  }catch(e){toast('Error: '+e.message,true);}
+}
+async function quickPush(){if(!genData){toast('Generate module first',true);return;}switchPane(document.querySelector('[data-pane="github"]'));await doPush();}
+async function doPush(){
+  if(!ghToken){toast('Connect to GitHub first',true);return;}
+  if(!selRepo){toast('Select a repository first',true);return;}
+  if(!genData){toast('Generate the module first',true);return;}
+  const logCard=document.getElementById('gh-log-card'),logEl=document.getElementById('push-log');
+  logCard.style.display='';logEl.innerHTML=`<span class="linf">Pushing to ${selRepo.full_name}...</span>\n`;
+  const md={...genData};
+  if(toggles.gh_readme)md._add_readme=true;
+  if(toggles.gh_gitignore)md._add_gitignore=true;
+  try{
+    const r=await fetch('/api/github/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:ghToken,module_data:md,repo:selRepo.full_name,branch:document.getElementById('gh-branch').value||'main',commit_message:document.getElementById('gh-msg').value||'feat: add Odoo module',path_prefix:document.getElementById('gh-prefix').value||''})});
+    const res=await r.json();
+    if(res.success)logEl.innerHTML+=`<span class="lok">Pushed ${res.pushed}/${res.total} files</span>\n`;
+    else{logEl.innerHTML+=`<span class="lok">Pushed ${res.pushed}/${res.total} files</span>\n`;(res.errors||[]).forEach(e=>{logEl.innerHTML+=`<span class="lerr">FAIL ${e.file}: ${e.error}</span>\n`;});}
+    logEl.innerHTML+=`<span class="linf">View: <a href="${res.repo_url}" target="_blank" style="color:var(--ac)">${res.repo_url}</a></span>`;
+    toast(res.success?'Pushed '+res.pushed+' files':(res.errors||[]).length+' errors',!res.success);
+  }catch(e){logEl.innerHTML+=`<span class="lerr">Error: ${e.message}</span>`;toast('Push failed: '+e.message,true);}
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   OPEN / LOAD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+async function loadFromGH(){
+  if(!ghToken){toast('Connect to GitHub first',true);return;}
+  const repo=document.getElementById('load-repo').value.trim();
+  const path=document.getElementById('load-path').value.trim();
+  const branch=document.getElementById('load-branch').value.trim()||'main';
+  if(!repo||!path){toast('Enter repo and module path',true);return;}
+  try{
+    const r=await fetch('/api/github/load-module',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:ghToken,repo,module_path:path,branch})});
+    const res=await r.json();
+    if(res.parsed){populateForm(res.parsed);toast('Module loaded from GitHub');}
+    else toast('Error: '+(res.error||''),true);
+  }catch(e){toast('Error: '+e.message,true);}
+}
+async function parseAndLoad(){
+  const content=document.getElementById('paste-mf').value.trim();
+  if(!content){toast('Paste manifest content first',true);return;}
+  try{
+    const r=await fetch('/api/parse-manifest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content})});
+    const res=await r.json();
+    if(res.parsed){populateForm(res.parsed);toast('Manifest parsed and loaded');}
+  }catch(e){toast('Error: '+e.message,true);}
+}
+function populateForm(p){
+  switchPane(document.querySelector('[data-pane="config"]'));
+  if(p.name){document.getElementById('f-name').value=p.name;document.getElementById('f-dname').value=p.display_name||p.name;}
+  if(p.odoo_version){selVers=new Set([p.odoo_version]);primaryV=p.odoo_version;syncVerUI();}
+  if(p.custom_version)document.getElementById('f-ver').value=p.custom_version;
+  if(p.summary)document.getElementById('f-summary').value=p.summary;
+  if(p.author)document.getElementById('f-author').value=p.author;
+  if(p.website)document.getElementById('f-website').value=p.website;
+  if(p.category){const s=document.getElementById('f-cat');for(const o of s.options)if(o.value===p.category){s.value=p.category;break;}}
+  if(p.license){const s=document.getElementById('f-lic');for(const o of s.options)if(o.value===p.license){s.value=p.license;break;}}
+  if(p.depends){deps=p.depends;renderDeps();}
+  if(p.price)document.getElementById('f-price').value=p.price;
+  if(p.currency){const s=document.getElementById('f-currency');for(const o of s.options)if(o.value===p.currency){s.value=p.currency;break;}}
+  document.querySelectorAll('.ck-item').forEach(el=>{el.classList.remove('on');const cb=el.querySelector('input');if(cb)cb.checked=false;});
+  setSub('sub-models',false);setSub('sub-pricing',false);
+  const boolKeys=['has_models','has_views','has_menus','has_security','has_wizard','has_controllers','has_reports','has_data','has_cron','has_email_templates','has_config','has_demo','has_js','has_css','has_qweb','has_pricing','pricing_enabled','inherit_mail','images','has_cloc_exclude'];
+  for(const k of boolKeys){
+    toggles[k]=!!p[k];
+    if(p[k]===true){
+      document.querySelectorAll('.ck-item').forEach(el=>{
+        const oc=el.getAttribute('onclick')||'';
+        if(oc.includes("'"+k+"'")||oc.includes('"'+k+'"')){el.classList.add('on');const cb=el.querySelector('input');if(cb)cb.checked=true;}
+      });
+      if(k==='has_models')setSub('sub-models',true);
+      if(k==='pricing_enabled')setSub('sub-pricing',true);
+    }
+  }
+  for(const k of ['installable','application','auto_install']){
+    if(p[k]!==undefined){flags[k]=p[k];const el=document.getElementById('flag-'+k);if(el)el.classList.toggle('on',!!p[k]);}
+  }
+  updateVerHint();updateAssetNote();
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SYNTAX HIGHLIGHTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function hlPy(code){
+  let h=esc(code);
+  h=h.replace(/(#[^\n]*)/g,'<span class="sc">$1</span>');
+  h=h.replace(/\b(True|False|None)\b/g,'<span class="sb">$1</span>');
+  h=h.replace(/\b(from|import|class|def|return|if|else|elif|for|in|not|and|or|pass|with|as|try|except|raise|lambda|yield|while|break|continue|global|nonlocal|del)\b/g,'<span class="sk">$1</span>');
+  h=h.replace(/('''[\s\S]*?'''|"""[\s\S]*?""")/g,'<span class="ss">$1</span>');
+  h=h.replace(/('(?:[^'\n\\]|\\.)*'|"(?:[^"\n\\]|\\.)*")/g,'<span class="ss">$1</span>');
+  h=h.replace(/\b(\d+\.?\d*)\b/g,'<span class="sn">$1</span>');
+  return h;
+}
+function hlXml(code){
+  let h=esc(code);
+  h=h.replace(/(&lt;!--[\s\S]*?--&gt;)/g,'<span class="xc">$1</span>');
+  h=h.replace(/(&lt;\/?)([\w:.-]+)/g,'<span class="xt">$1$2</span>');
+  h=h.replace(/([\w:_-]+)(\s*=\s*)(")/g,'<span class="xa">$1</span>$2$3');
+  h=h.replace(/="([^"]*)"/g,'="<span class="xv">$1</span>"');
+  return h;
+}
+function hlCsv(code){return code.split('\n').map((l,i)=>i===0?'<span class="ch">'+esc(l)+'</span>':esc(l)).join('\n');}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TOAST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  */
+function toast(msg, type=false){
+  /* type: false = success, true = error, 'info' = info */
+  const el=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  const cls='toast show'+(type===true?' err':type==='info'?' info':'');
+  el.className=cls;
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
