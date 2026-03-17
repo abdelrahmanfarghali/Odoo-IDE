@@ -18,7 +18,11 @@
             "args": [
                 "run",
                 "--no-debugger", // External debuggers work better without the built-in one
-                "--no-reload" // Also disable the reloader to prevent interference
+                "--no-reload", // Also disable the reloader to prevent interference
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8060"
             ],
             // Optional: specify a task to run before debugging starts
             "preLaunchTask": "url-open"
